@@ -147,6 +147,11 @@ class WatchFace : CanvasWatchFaceService() {
 
         override fun onDraw(canvas: Canvas, bounds: Rect) {
             calendar.timeInMillis = System.currentTimeMillis()
+            if (complications.centerInvalidated || ticks.centerInvalidated) {
+                val center = Point(canvas.width / 2f, canvas.height / 2f)
+                complications.setCenter(center)
+                ticks.setCenter(center)
+            }
             canvas.save()
             background.draw(canvas)
             if ((mode.isAmbient && dataProvider.hasTicksInAmbientMode()) ||
@@ -154,12 +159,9 @@ class WatchFace : CanvasWatchFaceService() {
             ) {
                 ticks.draw(canvas)
             }
-            val center = Point(canvas.width / 2f, canvas.height / 2f)
             if (!mode.isAmbient || dataProvider.hasComplicationsInAmbientMode()) {
-                complications.setCenter(center)
                 complications.draw(canvas, System.currentTimeMillis())
             }
-            ticks.setCenter(center)
             hands.draw(canvas, calendar)
             canvas.restore()
         }

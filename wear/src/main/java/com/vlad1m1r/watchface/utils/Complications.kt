@@ -49,6 +49,8 @@ class Complications(val context: Context): WatchView(context) {
         put(BOTTOM_COMPLICATION_ID, null)
     }
     private val complicationData = mutableMapOf<Int, ComplicationData?>()
+    var centerInvalidated = true
+        private set
 
     fun setMode(mode: Mode) {
         COMPLICATION_SUPPORTED_TYPES.keys.forEach {
@@ -68,6 +70,7 @@ class Complications(val context: Context): WatchView(context) {
         this.complicationData[id] = complicationData
         complicationDrawables[id]?.setComplicationData(complicationData)
             ?: throw IllegalArgumentException("Unsupported ComplicationDrawable id: $id")
+        centerInvalidated = true
     }
 
     fun setComplicationDrawable(drawableResId: Int) {
@@ -78,9 +81,11 @@ class Complications(val context: Context): WatchView(context) {
                     complicationData[complicationId]?.let { setComplicationData(it) }
                 }
         }
+        centerInvalidated = true
     }
 
     override fun setCenter(center: Point) {
+        centerInvalidated = false
         setBoundsToLeftRightComplications(center.x, center.y)
         setBoundsToTopBottomComplications(center.x, center.y)
     }
