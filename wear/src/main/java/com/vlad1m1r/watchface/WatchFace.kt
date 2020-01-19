@@ -1,7 +1,9 @@
 package com.vlad1m1r.watchface
 
 import android.content.Context
-import android.graphics.*
+import android.content.SharedPreferences.OnSharedPreferenceChangeListener
+import android.graphics.Canvas
+import android.graphics.Rect
 import android.os.Bundle
 import android.os.Handler
 import android.os.Message
@@ -12,8 +14,8 @@ import android.support.wearable.watchface.WatchFaceStyle
 import android.view.SurfaceHolder
 import com.vlad1m1r.watchface.data.DataProvider
 import com.vlad1m1r.watchface.data.KEY_ANALOG_WATCH_FACE
+import com.vlad1m1r.watchface.data.KEY_IS_LAYOUT2
 import com.vlad1m1r.watchface.utils.*
-import com.vlad1m1r.watchface.utils.Point
 import java.lang.ref.WeakReference
 import java.util.*
 
@@ -54,6 +56,13 @@ class WatchFace : CanvasWatchFaceService() {
 
         private lateinit var dataProvider: DataProvider
 
+        private val prefsChangeListener =
+            OnSharedPreferenceChangeListener { _, key ->
+                if (key == KEY_IS_LAYOUT2) {
+                    initLayouts()
+                }
+            }
+
         override fun onCreate(holder: SurfaceHolder) {
             super.onCreate(holder)
 
@@ -70,17 +79,24 @@ class WatchFace : CanvasWatchFaceService() {
             calendar = Calendar.getInstance()
 
             background = Background(dataProvider)
-            ticks = Ticks(this@WatchFace)
             complications = Complications(this@WatchFace)
             hands = Hands(this@WatchFace, dataProvider)
 
             setActiveComplications(*COMPLICATION_SUPPORTED_TYPES.keys.toIntArray())
 
             updateTimeHandler.sendEmptyMessage(MESSAGE_UPDATE_ID)
+
+            initLayouts()
+            sharedPref.registerOnSharedPreferenceChangeListener(prefsChangeListener)
         }
 
         override fun onDestroy() {
             updateTimeHandler.removeMessages(MESSAGE_UPDATE_ID)
+            val sharedPref = getSharedPreferences(
+                KEY_ANALOG_WATCH_FACE,
+                Context.MODE_PRIVATE
+            )
+            sharedPref.unregisterOnSharedPreferenceChangeListener(prefsChangeListener)
             super.onDestroy()
         }
 
@@ -138,11 +154,12 @@ class WatchFace : CanvasWatchFaceService() {
             ) {
                 ticks.draw(canvas)
             }
+            val center = Point(canvas.width / 2f, canvas.height / 2f)
             if (!mode.isAmbient || dataProvider.hasComplicationsInAmbientMode()) {
-                val center = Point(canvas.width / 2f, canvas.height / 2f)
                 complications.setCenter(center)
                 complications.draw(canvas, System.currentTimeMillis())
             }
+            ticks.setCenter(center)
             hands.draw(canvas, calendar)
             canvas.restore()
         }
@@ -187,6 +204,16 @@ class WatchFace : CanvasWatchFaceService() {
             complications.setMode(mode)
             ticks.setMode(mode)
             hands.setMode(mode)
+        }
+
+        private fun initLayouts() {
+            if (dataProvider.isLayout2()) {
+                ticks = TicksLayout2(this@WatchFace)
+                complications.setComplicationDrawable(R.drawable.design2_complication_drawable)
+            } else {
+                ticks = TicksLayout1(this@WatchFace)
+                complications.setComplicationDrawable(R.drawable.complication_drawable)
+            }
         }
     }
 }
