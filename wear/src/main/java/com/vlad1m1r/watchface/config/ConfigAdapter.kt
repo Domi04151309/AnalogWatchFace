@@ -119,7 +119,7 @@ class ConfigAdapter(private val dataProvider: DataProvider) : RecyclerView.Adapt
     }
 
     override fun getItemCount(): Int {
-        return 7
+        return 8
     }
 
     override fun getItemViewType(position: Int) =
